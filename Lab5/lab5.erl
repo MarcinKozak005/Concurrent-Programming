@@ -55,6 +55,11 @@ searchTree(X,{node,{X,_,_}}) -> {ok,X};
 searchTree(X,{node,{V,L,_}}) when X<V -> searchTree(X,L);
 searchTree(X,{node,{_,_,R}}) -> searchTree(X,R).
 
+searchTree2(X,{node,'nil'}) -> throw({no,X});
+searchTree2(X,{node,{X,_,_}}) -> throw({ok,X});
+searchTree2(X,{node,{V,L,_}}) when X<V -> searchTree2(X,L);
+searchTree2(X,{node,{_,_,R}}) -> searchTree2(X,R).
+
 
 start() ->
     random:seed(1,2,3),
@@ -64,6 +69,6 @@ start() ->
     io:fwrite("~w\n",[treeToListLVR(B)]),
     io:fwrite("~w\n",[treeToListVLR(B)]),
     io:fwrite("~w\n",[treeToListVRL(B)]),
-    io:fwrite("~w",[searchTree(5,B)]).
+    io:fwrite("~w",[searchTree2(5,B)]).
     
     
