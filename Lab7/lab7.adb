@@ -57,15 +57,15 @@ procedure Buffor is
 
 Buffor1 : buffor(10);
 
-task Producent; --is
---  entry Start;
---end Producent;
+task Producent is
+  entry Start;
+end Producent;
 
 task body Producent is
   X: Character := 'X';
 begin
-  --accept Start;
-  for I in 1..12 loop
+  accept Start;
+  for I in 1..17 loop
     Put_Line("$ "&I'Img&" Producent wstawia: ");
     Buffor1.Wstaw(X);
   end loop;
@@ -86,8 +86,8 @@ begin
 end Konsument;
 
 begin
-  --Producent.Start;
-  --delay 1.0;
+  Producent.Start;
+  delay 0.5;
   Konsument.Start;
   --Put_Line("@ jestem w procedurze glownej");
 end Buffor;
