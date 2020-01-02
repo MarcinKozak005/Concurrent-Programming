@@ -1,5 +1,5 @@
 % hello world program
--module(helloworld).
+-module(lab4).
 %-export([start/0]).
 %-export([pole/1,objetosc/1]).
 
