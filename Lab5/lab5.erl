@@ -1,4 +1,4 @@
--module(helloworld).
+-module(lab5).
 -compile([export_all]).
 
 

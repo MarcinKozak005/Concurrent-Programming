@@ -1,59 +1,45 @@
 -module(zad1).
 -compile([export_all]).
 
-send(_,0) -> 0;
-send(Next,N) when N>0 ->
-	{A,B,C} = now(),
-	random:seed(A,B,C),
-	Next!{odbierzWyslij,random:uniform(100)},
-	send(Next,N-1).
 
-
+produkuj(_,_,0) -> ok;
+produkuj(Prod,Posr,Num) ->
+  Prod!{produkuj,Posr},
+  produkuj(Prod,Posr,Num-1).
 
 producent() ->
 	{A,B,C} = now(),
 	random:seed(A,B,C),
 	receive
     {produkuj,Next} -> 
-											Next!{odbierzWyslij,random:uniform(100)},
-											producent()
+      Rand = random:uniform(100),
+      io:format("(~p) Wysylam [~p]~n",[Rand,self()]),
+	  	Next!{odbierzWyslij,Rand},
+		  producent()
   end.
 
 posrednik(Next) ->
 	receive
 		{odbierzWyslij,N} -> Next!{odbierz,N},
-												io:format("Posrednicze ~p~n",[N]),
-												posrednik(Next)
+		  io:format("(~p) Posrednicze [~p]~n",[N,self()]),
+			posrednik(Next)
 	end.
 
 
 odbiorca() ->
   receive
-    {odbierz,N} -> io:format("Odebralem(~p)~n",[N]),
-										odbiorca()
+    {odbierz,N} -> io:format("(~p) Odebralem [~p]~n",[N,self()]),
+		  odbiorca()
   end.
 
-loop() ->
-	receive
-		{a} -> io:format("a~n"), loop();
-		{b} -> io:format("b~n"), loop();
-		{c} -> io:format("c~n"), loop()
-	end.
 
+fmain(A) ->
 
-fmain() ->
 	PidOdbiorca = spawn(?MODULE,odbiorca,[]),
 	PidPosrednik = spawn(?MODULE,posrednik,[PidOdbiorca]),
   PidProducent = spawn(?MODULE,producent,[]),
 
-  PidProducent!{produkuj,PidPosrednik},
-  PidProducent!{produkuj,PidPosrednik},
-  %PidProducent!{produkuj,11},
-
-	%Loop = spawn(?MODULE,loop,[]),
-	%Loop!{a},
-	%Loop!{c},
-	%Loop!{a},
+  produkuj(PidProducent,PidPosrednik,A),
 
   io:format("Koniec~n").
 
