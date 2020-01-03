@@ -9,6 +9,7 @@ moc kawy?
 
 data flow:
 1. wyświetl menu
+1.5 Wprowadz hajs? $$$$
 2. wybierz napój
 3. wyswietl progress bar
 4. wyślij do jednoistki centralnej zapytanie o napój

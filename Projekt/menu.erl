@@ -88,7 +88,7 @@ magazyn(Stan) ->
     receive
         {Id, init} ->
             timer:sleep(20),
-            Stan1 = {2000, 1000, 2000, 50, 500},
+            Stan1 = {20, 1000, 2000, 50, 500},
             Id!{magazynOk},
             magazyn(Stan1);
         {Id, stan} ->
