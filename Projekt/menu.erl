@@ -4,12 +4,12 @@
 
 % woda, kawa, mleko, herbata, kakao
 getIngredients(Num) -> 
-	element(Num,{
-	{150,20,0,0,0},
-	{250,40,0,0,0},
-	{120,20,30,0,0},
-	{210,20,40,0,0}
-	}). %generalnie trzeba dopisac reszte mozliwych produktow
+    element(Num,{
+    {150,20,0,0,0},
+    {250,40,0,0,0},
+    {120,20,30,0,0},
+    {210,20,40,0,0}
+    }). %generalnie trzeba dopisac reszte mozliwych produktow
 
 printMenu() ->
     %print({clear}),
@@ -100,22 +100,22 @@ magazyn(Stan) ->
                 Id!{"brak wody", komunikat},
                 Id!{gotowe},
                 magazyn({Woda, Kawa, Mleko, Herbata, Kakao});    
-			true ->
-				{NumAsInt,_} =string:to_integer(NumerNapoju),
-				Skladniki = getIngredients(NumAsInt),
-				UsedWoda = element(1,Skladniki),
-				UsedKawa = element(2,Skladniki),
-				UsedMleko = element(3,Skladniki),
-				UsedHerbata = element(4,Skladniki),
-				UsedKakao = element(5,Skladniki),
+            true ->
+                {NumAsInt,_} =string:to_integer(NumerNapoju),
+                Skladniki = getIngredients(NumAsInt),
+                UsedWoda = element(1,Skladniki),
+                UsedKawa = element(2,Skladniki),
+                UsedMleko = element(3,Skladniki),
+                UsedHerbata = element(4,Skladniki),
+                UsedKakao = element(5,Skladniki),
 
-				Woda1 = Woda - UsedWoda,				
-				Kawa1 = Woda - UsedKawa,
-				Mleko1 = Woda - UsedMleko,
-				Herbata1 = Woda - UsedHerbata,
-				Kakao1 = Woda - UsedKakao,
-				
-				timer:sleep(2000),
+                Woda1 = Woda - UsedWoda,                
+                Kawa1 = Woda - UsedKawa,
+                Mleko1 = Woda - UsedMleko,
+                Herbata1 = Woda - UsedHerbata,
+                Kakao1 = Woda - UsedKakao,
+                
+                timer:sleep(2000),
                 Id!{"Kawa zrobiona, dziekujemy i zapraszamy ponownie!", komunikat},
                 Id!{gotowe},
                 magazyn({Woda1, Kawa1, Mleko1, Herbata1, Kakao1})
