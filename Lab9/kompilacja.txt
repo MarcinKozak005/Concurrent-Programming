@@ -1,0 +1,11 @@
+Kompilacja:
+
+gprbuild -P strim_socket.gpr
+
+lub
+
+gnatmake -P strim_socket.gpr
+
+Czyszczenie:
+
+gprclean strim_socket.gpr 
