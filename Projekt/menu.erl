@@ -2,26 +2,36 @@
 -module(menu).
 -compile([export_all]).
 
+% woda, kawa, mleko, herbata, kakao
+getIngredients(Num) -> 
+	element(Num,{
+	{150,20,0,0,0},
+	{250,40,0,0,0},
+	{120,20,30,0,0},
+	{210,20,40,0,0}
+	}). %generalnie trzeba dopisac reszte mozliwych produktow
+
 printMenu() ->
     %print({clear}),
     print({gotoxy, 1, 1}),
     io:format("****MENU****
-mała czarna kawa - 1.
+mala czarna kawa - 1.
 duza czarna kawa - 2.
-mała biała kawa  - 3.
-duza biała kawa  - 4.
+mala biala kawa  - 3.
+duza biala kawa  - 4.
 latte            - 5.
 capuchino        - 6.
 espresso         - 7.
 herbata          - 8.
-kakao            - 9. 
+kakao            - 9.
+
 Wybierz numer napoju: ").
 
 monitor() ->
     receive
         {Id, init} ->
             print({clear}),
-            timer:sleep(2000),
+            timer:sleep(20),
             Id!{monitorOk},
             monitor();
         {Id, start} -> 
@@ -30,7 +40,7 @@ monitor() ->
             Id!{Kawa},
             monitor();
         {Komunikat, komunikat} ->
-            io:format("\e[~p;~pH Komunikat: ~p~n", [12, 1, Komunikat]),
+            io:format("\e[~p;~pHKomunikat: ~p~n", [13, 0, Komunikat]),
             monitor();
         {koniec} ->
             io:format("M koniec ~n")
@@ -77,7 +87,7 @@ magazyn(Stan) ->
     Kakao = element(5, Stan),
     receive
         {Id, init} ->
-            timer:sleep(2000),
+            timer:sleep(20),
             Stan1 = {2000, 1000, 2000, 50, 500},
             Id!{magazynOk},
             magazyn(Stan1);
@@ -85,32 +95,38 @@ magazyn(Stan) ->
             Id!{[Stan], komunikat},
             Id!{gotowe},
             magazyn({Woda, Kawa, Mleko, Herbata, Kakao});
-        {Id, napoj, "1"} ->
+        {Id, napoj, NumerNapoju} ->
             if Woda < 150 ->
                 Id!{"brak wody", komunikat},
                 Id!{gotowe},
-                magazyn({Woda, Kawa, Mleko, Herbata, Kakao});
-            true ->
-                if Kawa < 10 ->
-                    Id!{"brak kawy", komunikat},
-                    Id!{gotowe},
-                    magazyn({Woda, Kawa, Mleko, Herbata, Kakao});
-                true -> 
-                    Woda1 = Woda - 150,
-                    Kawa1 = Kawa - 10,
-                    timer:sleep(2000),
-                    Id!{"Kazwa zrobiona", komunikat},
-                    Id!{gotowe},
-                    magazyn({Woda1, Kawa1, Mleko, Herbata, Kakao})
-                end
+                magazyn({Woda, Kawa, Mleko, Herbata, Kakao});    
+			true ->
+				{NumAsInt,_} =string:to_integer(NumerNapoju),
+				Skladniki = getIngredients(NumAsInt),
+				UsedWoda = element(1,Skladniki),
+				UsedKawa = element(2,Skladniki),
+				UsedMleko = element(3,Skladniki),
+				UsedHerbata = element(4,Skladniki),
+				UsedKakao = element(5,Skladniki),
+
+				Woda1 = Woda - UsedWoda,				
+				Kawa1 = Woda - UsedKawa,
+				Mleko1 = Woda - UsedMleko,
+				Herbata1 = Woda - UsedHerbata,
+				Kakao1 = Woda - UsedKakao,
+				
+				timer:sleep(2000),
+                Id!{"Kawa zrobiona, dziekujemy i zapraszamy ponownie!", komunikat},
+                Id!{gotowe},
+                magazyn({Woda1, Kawa1, Mleko1, Herbata1, Kakao1})
             end
     end.
 
 start() ->
-    MonitorId = spawn(menu, monitor, []),
-    MagazynId = spawn(menu, magazyn, [{2000, 1000, 2000, 50, 500}]),
-    JCid = spawn(menu, jednostkaCentralna, [MonitorId, MagazynId]),
-    JCid! { init}.
+    MonitorId = spawn(?MODULE, monitor, []),
+    MagazynId = spawn(?MODULE, magazyn, [{2000, 1000, 2000, 50, 500}]),
+    JCid = spawn(?MODULE, jednostkaCentralna, [MonitorId, MagazynId]),
+    JCid!{init}.
 
 print({gotoxy,X,Y}) ->
    io:format("\e[~p;~pH",[Y,X]);
@@ -123,11 +139,4 @@ print({tlo}) ->
   io:format("a",[])  .
    
 printxy({X,Y,Msg}) ->
-   io:format("\e[~p;~pH~p~n",[Y,X,Msg]).    
-main()->
-  print({clear}),
-  print({printxy,1,20, "Ada"}),
-  print({printxy,10,20, 2012}),
-  
-  print({tlo}),
-  print({gotoxy,1,25}).  
+   io:format("\e[~p;~pH~p~n",[Y,X,Msg]). 
