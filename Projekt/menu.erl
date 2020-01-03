@@ -109,12 +109,41 @@ magazyn(Stan) ->
                 UsedHerbata = element(4,Skladniki),
                 UsedKakao = element(5,Skladniki),
 
-                Woda1 = Woda - UsedWoda,                
-                Kawa1 = Woda - UsedKawa,
-                Mleko1 = Woda - UsedMleko,
-                Herbata1 = Woda - UsedHerbata,
-                Kakao1 = Woda - UsedKakao,
+                if UsedWoda<Woda ->
+                    Id!{"brak wody", komunikat},
+                    Id!{gotowe},
+                    magazyn({Woda, Kawa, Mleko, Herbata, Kakao});
+                true -> Woda1 = Woda - UsedWoda
+                end,
                 
+                if UsedKawa<Kawa ->
+                    Id!{"brak kawusi", komunikat},
+                    Id!{gotowe},
+                    magazyn({Woda, Kawa, Mleko, Herbata, Kakao});
+                true -> Kawa1 = Kawa - UsedKawa
+                end,
+
+                if UsedMleko<Mleko ->
+                    Id!{"brak mleczka", komunikat},
+                    Id!{gotowe},
+                    magazyn({Woda, Kawa, Mleko, Herbata, Kakao});
+                true -> Mleko1 = Mleko - UsedMleko
+                end,
+
+                if UsedHerbata<Herbata ->
+                    Id!{"brak herbatki", komunikat},
+                    Id!{gotowe},
+                    magazyn({Woda, Kawa, Mleko, Herbata, Kakao});
+                true -> Herbata1 = Herbata - UsedHerbata
+                end,
+
+                if UsedKakao<Kakao ->
+                    Id!{"brak kakalka", komunikat},
+                    Id!{gotowe},
+                    magazyn({Woda, Kawa, Mleko, Herbata, Kakao});
+                true -> Kakao1 = Kakao - UsedKakao
+                end,
+              
                 timer:sleep(2000),
                 Id!{"Kawa zrobiona, dziekujemy i zapraszamy ponownie!", komunikat},
                 Id!{gotowe},
