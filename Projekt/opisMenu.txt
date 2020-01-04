@@ -1,0 +1,22 @@
+****MENU****
+mala czarna kawa - 1.
+duza czarna kawa - 2.
+mala biala kawa  - 3.
+duza biala kawa  - 4.
+latte            - 5.
+capuchino        - 6.
+espresso         - 7.
+herbata          - 8.
+kakao            - 9.
+
+Wybierz numer napoju: 1   
+ooooooooo    				#StanLine
+Komunikat: "Kawa ..."			#KomunikatLine
+					#Error Line 
+    
+Komunikat: {50,990,2000,50,500}		#StanProduktowLine
+
+    
+29>  					#FinishLine (29> To jest prompt xD)
+
+

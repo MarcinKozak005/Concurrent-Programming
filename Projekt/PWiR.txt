@@ -39,6 +39,7 @@ Ilość cukru: _ (0, 1, 2, 3) <- strzałki <- tego nie ma na razie
 Komunikat: _____ (In progress, Error, Done) <- są trochę inne 
 
 <Nazwa, Ml wody, Gramy kawy, ml mleka, isHerbata, Gramy Kakao>
+
 <MC, 150, 10, 0, 0, 0>
 <DC, 300, 25, 0, 0, 0>
 <MB, 100, 10, 80, 0, 0>

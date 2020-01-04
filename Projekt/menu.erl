@@ -2,14 +2,42 @@
 -module(menu).
 -compile([export_all]).
 
+%---STALE
+progressBarLength() ->10.
+
+progressBarLine() ->13.
+komunikatLine() -> 14.
+errorLine() -> 15.
+stanProduktowLine() -> 17.
+finishLine() -> 20.
+%---STALE END
+
+
 % woda, kawa, mleko, herbata, kakao
 getIngredients(Num) -> 
     element(Num,{
-    {150,20,0,0,0},
-    {250,40,0,0,0},
-    {120,20,30,0,0},
-    {210,20,40,0,0}
-    }). %generalnie trzeba dopisac reszte mozliwych produktow
+    { 150, 10, 0  , 0, 0 },
+    { 300, 25, 0  , 0, 0 },
+    { 100, 10, 80 , 0, 0 },
+    { 170, 25, 150, 0, 0 },
+    { 60 , 20, 200, 0, 0 },
+    { 70 , 25, 100, 0, 0 },
+    { 50 , 40, 0  , 0, 0 },
+    { 250, 0 , 0  , 1, 0 },
+    { 0  , 0 , 250, 0, 15}
+    }). %progressBarLine
+
+% woda, kawa, mleko, herbata, kakao
+getInitialMachineResources() -> {200, 1000, 2000, 50, 500}.
+
+printProgressBar(0) -> io:format(" ");
+printProgressBar(N) ->
+    %tu skaczemy miedzy liniami, bo na razie wtswietla się cały czasy prompt i jak nie ma skakania to jest np w linijce progressBarLine cos takiego: oooo12> a potem ooooooo12> (no prompt xD).
+    print({gotoxy,progressBarLength()-N,progressBarLine()}),
+    io:format("o"),
+    print({gotoxy,0,finishLine()}),
+    timer:sleep(500),
+    printProgressBar(N-1).
 
 printMenu() ->
     %print({clear}),
@@ -27,6 +55,9 @@ kakao            - 9.
 
 Wybierz numer napoju: ").
 
+
+%-----------------------------------------
+
 monitor() ->
     receive
         {Id, init} ->
@@ -35,12 +66,17 @@ monitor() ->
             Id!{monitorOk},
             monitor();
         {Id, start} -> 
+            print({clear}),
             printMenu(),
             Kawa = io:get_chars("", 1),
             Id!{Kawa},
             monitor();
-        {Komunikat, komunikat} ->
-            io:format("\e[~p;~pHKomunikat: ~p~n", [13, 0, Komunikat]),
+        {Komunikat, komunikat,LineNumber} ->
+            io:format("\e[~p;~pHKomunikat: ~p~n~n", [LineNumber, 0, Komunikat]),
+            print({gotoxy,0,finishLine()}),
+            monitor();
+        {printBrogressBarMonitor} ->
+            printProgressBar(10),
             monitor();
         {koniec} ->
             io:format("M koniec ~n")
@@ -62,6 +98,9 @@ jednostkaCentralna(MonitorId, MagazynId)->
         {gotowe} ->
             MonitorId!{self(), start},
             jednostkaCentralna(MonitorId, MagazynId);
+        {printProgressBarCentralna} ->
+            MonitorId!{printBrogressBarMonitor},
+            jednostkaCentralna(MonitorId,MagazynId);
         {"k"} -> 
             exit(self(), "Bo tak");
         {"r"} ->
@@ -71,11 +110,12 @@ jednostkaCentralna(MonitorId, MagazynId)->
             MagazynId!{self(), stan},
             jednostkaCentralna(MonitorId, MagazynId);
         {Napoj} ->
-            MonitorId!{"Prosze czekac, napoj w trakcie produkcji", komunikat},
+            MonitorId!{"Prosze czekac, napoj w trakcie produkcji", komunikat,komunikatLine()},
+            print({gotoxy,0,finishLine()}),
             MagazynId!{self(), napoj, Napoj},
             jednostkaCentralna(MonitorId, MagazynId);
-        {Blad, komunikat} ->
-            MonitorId!{Blad, komunikat},
+        {Blad, komunikat, LineNumber} ->
+            MonitorId!{Blad, komunikat,LineNumber},
             jednostkaCentralna(MonitorId, MagazynId)
     end.
 
@@ -88,19 +128,15 @@ magazyn(Stan) ->
     receive
         {Id, init} ->
             timer:sleep(20),
-            Stan1 = {20, 1000, 2000, 50, 500},
+            Stan1 = getInitialMachineResources(),
             Id!{magazynOk},
             magazyn(Stan1);
         {Id, stan} ->
-            Id!{[Stan], komunikat},
+            Id!{[Stan], komunikat,komunikatLine()},
             Id!{gotowe},
             magazyn({Woda, Kawa, Mleko, Herbata, Kakao});
         {Id, napoj, NumerNapoju} ->
-            if Woda < 150 ->
-                Id!{"brak wody", komunikat},
-                Id!{gotowe},
-                magazyn({Woda, Kawa, Mleko, Herbata, Kakao});    
-            true ->
+%%%123
                 {NumAsInt,_} =string:to_integer(NumerNapoju),
                 Skladniki = getIngredients(NumAsInt),
                 UsedWoda = element(1,Skladniki),
@@ -108,52 +144,60 @@ magazyn(Stan) ->
                 UsedMleko = element(3,Skladniki),
                 UsedHerbata = element(4,Skladniki),
                 UsedKakao = element(5,Skladniki),
-
-                if UsedWoda<Woda ->
-                    Id!{"brak wody", komunikat},
-                    Id!{gotowe},
-                    magazyn({Woda, Kawa, Mleko, Herbata, Kakao});
-                true -> Woda1 = Woda - UsedWoda
-                end,
                 
-                if UsedKawa<Kawa ->
-                    Id!{"brak kawusi", komunikat},
-                    Id!{gotowe},
-                    magazyn({Woda, Kawa, Mleko, Herbata, Kakao});
-                true -> Kawa1 = Kawa - UsedKawa
+                WodaLeft = Woda-UsedWoda,
+                KawaLeft = Kawa-UsedKawa,
+                MlekoLeft = Mleko-UsedMleko,
+                HerbataLeft = Herbata-UsedHerbata,
+                KakaoLeft = Kakao-UsedKakao,
+
+                case WodaLeft<0 of
+                    false -> null;
+                    true -> Id!{"brak wody", komunikat,errorLine()},timer:sleep(3000),
+                        Id!{gotowe},
+                        magazyn({Woda, Kawa, Mleko, Herbata, Kakao})
                 end,
 
-                if UsedMleko<Mleko ->
-                    Id!{"brak mleczka", komunikat},
-                    Id!{gotowe},
-                    magazyn({Woda, Kawa, Mleko, Herbata, Kakao});
-                true -> Mleko1 = Mleko - UsedMleko
+                case KawaLeft<0 of
+                    false -> null;
+                    true -> Id!{"brak kawusi", komunikat,errorLine()},timer:sleep(3000),
+                        Id!{gotowe},
+                        magazyn({Woda, Kawa, Mleko, Herbata, Kakao})
                 end,
 
-                if UsedHerbata<Herbata ->
-                    Id!{"brak herbatki", komunikat},
-                    Id!{gotowe},
-                    magazyn({Woda, Kawa, Mleko, Herbata, Kakao});
-                true -> Herbata1 = Herbata - UsedHerbata
+                case MlekoLeft<0 of
+                    false -> null;
+                    true -> Id!{"brak mleczka", komunikat,errorLine()},timer:sleep(3000),
+                        Id!{gotowe},
+                        magazyn({Woda, Kawa, Mleko, Herbata, Kakao})
                 end,
 
-                if UsedKakao<Kakao ->
-                    Id!{"brak kakalka", komunikat},
-                    Id!{gotowe},
-                    magazyn({Woda, Kawa, Mleko, Herbata, Kakao});
-                true -> Kakao1 = Kakao - UsedKakao
+                case HerbataLeft<0 of
+                    false -> null;
+                    true -> Id!{"brak hierbaty", komunikat,errorLine()},timer:sleep(3000),
+                        Id!{gotowe},
+                        magazyn({Woda, Kawa, Mleko, Herbata, Kakao})
                 end,
-              
-                timer:sleep(2000),
-                Id!{"Kawa zrobiona, dziekujemy i zapraszamy ponownie!", komunikat},
+
+                case KakaoLeft<0 of
+                    false -> null;
+                    true -> Id!{"brak kakalka", komunikat,errorLine()},timer:sleep(3000),
+                        Id!{gotowe},
+                        magazyn({Woda, Kawa, Mleko, Herbata, Kakao})
+                end,
+                              
+                %timer:sleep(2000),%produkcja
+                Id!{printProgressBarCentralna},
+                Id!{"Kawa zrobiona, dziekujemy i zapraszamy ponownie!", komunikat,komunikatLine()},
+                Id!{{WodaLeft, KawaLeft, MlekoLeft, HerbataLeft, KakaoLeft},komunikat,stanProduktowLine()},
+                timer:sleep(10000),
                 Id!{gotowe},
-                magazyn({Woda1, Kawa1, Mleko1, Herbata1, Kakao1})
-            end
+                magazyn({WodaLeft, KawaLeft, MlekoLeft, HerbataLeft, KakaoLeft})
     end.
 
 start() ->
     MonitorId = spawn(?MODULE, monitor, []),
-    MagazynId = spawn(?MODULE, magazyn, [{2000, 1000, 2000, 50, 500}]),
+    MagazynId = spawn(?MODULE, magazyn, [getInitialMachineResources()]),
     JCid = spawn(?MODULE, jednostkaCentralna, [MonitorId, MagazynId]),
     JCid!{init}.
 
@@ -164,8 +208,8 @@ print({printxy,X,Y,Msg}) ->
 print({clear}) ->
    io:format("\e[2J",[]);
 print({tlo}) ->
-  print({printxy,2,4,1.2343}),  
-  io:format("a",[])  .
+   print({printxy,2,4,1.2343}),  
+   io:format("a",[])  .
    
 printxy({X,Y,Msg}) ->
    io:format("\e[~p;~pH~p~n",[Y,X,Msg]). 
