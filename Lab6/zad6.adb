@@ -3,8 +3,7 @@ use Ada.Text_IO;
 
 with Ada.Numerics.Elementary_Functions; -- od Sqrt
 
-procedure Punkty is
-	
+procedure zad6 is
 	
 function odleglosc(X1,Y1,X2,Y2: in Integer) return Float is
 begin
@@ -82,5 +81,5 @@ begin
   Generujacy.Generuj(10);
   
   Put_Line("Koniec_PG ");
-end Punkty;
+end zad6;
 	  	

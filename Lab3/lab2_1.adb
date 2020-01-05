@@ -4,7 +4,7 @@ use Ada.Text_IO, Ada.Integer_Text_IO;
 with Ada.Numerics.Discrete_Random;
 
  
-procedure Lab4Lista is
+procedure lab2_1 is
  
 type Element is record 
     Data : Integer := 0;
@@ -173,4 +173,4 @@ begin
   Print(Lista2);
   
   
-end Lab4Lista;
+end lab2_1;

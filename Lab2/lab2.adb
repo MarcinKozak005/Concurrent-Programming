@@ -9,7 +9,7 @@ with Ada.Text_IO, Ada.Calendar;
 use Ada.Text_IO, Ada.Calendar;
 
 
-procedure Hello is
+procedure lab2 is
     type Wektor is array (Integer range <>) of Float;
     agregat: Wektor(1..10) := (1..5 => 12.0, others => 1.0);
     
@@ -107,4 +107,4 @@ begin
     
     Put_Line("Czas sortowania: "&D'Img&"[s]");
     WypiszWektor(agregat);
-end Hello;
+end lab2;

@@ -1,7 +1,7 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Numerics.Discrete_Random;
 
-procedure Hello is
+procedure lab2_2 is
 
 type Tree is record
     Data: Integer;
@@ -112,4 +112,4 @@ begin
     Put_Line(Search(Drzewo1,17)'Img);
     
     
-end Hello;
+end lab2_2;

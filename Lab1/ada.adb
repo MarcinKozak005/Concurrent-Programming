@@ -1,16 +1,16 @@
 -- lab1.adb
--- komentarz do koÅ?ca linii
+-- komentarz do koA?ca linii
 
 -- wykorzystany pakiet 
 with Ada.Text_IO;
 use Ada.Text_IO;
 
--- procedura gÅ?Ã³wna - dowolna nazwa
-procedure hello is
+-- procedura gA?A3wna - dowolna nazwa
+procedure lab1 is
 
--- czÄ?Å?Ä? deklaracyjna  
+-- czÄ?A?Ä? deklaracyjna  
   
-  -- funkcja - forma peÅ?na
+  -- funkcja - forma peA?na
   function Max2(A1, A2 : in Float ) return Float is
   begin
     if A1 > A2 then return A1;
@@ -18,9 +18,9 @@ procedure hello is
     end if;
   end Max2;    
 
-  -- funkcja "wyraÅŸeniowa"  
+  -- funkcja "wyraAYeniowa"  
   -- forma uproszczona funkcji
-  -- jej treÅ?ciÄ? jest tylko wyraÅŸenie w nawiasie   
+  -- jej treA?ciÄ? jest tylko wyraAYenie w nawiasie   
   
   function Add(A1, A2 : Float) return Float is
     (A1 + A2);
@@ -89,7 +89,7 @@ procedure hello is
   
   
   -----------------------------------------------------------------------------------------
--- poniÅŸej treÅ?Ä? procesury gÅ?Ã³wnej   
+-- poniAYej treA?Ä? procesury gA?A3wnej   
 begin
   Put_Line("Suma = " & Add(3.0, 4.0)'Img );
   Put_Line("Srednia = "& Srednia(3.0, 4.0)'Img);
@@ -98,10 +98,4 @@ begin
   Put_Line( "Silnia(5) = "& Silnia(5)'Img);
   Put_Line("Fibbo_Moje(12)"& FibboN(12)'Img);
   Print_Fibo(12);
-  
-  -- zabawa z pentla
-  for x in 0..5 loop
-    Put(x'Img);
-    New_Line;
-  end loop;
-end hello;  
+end lab1;  
