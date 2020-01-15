@@ -2,17 +2,18 @@
 -module(menu).
 -compile([export_all]).
 
-%---STALE
-progressBarLength() ->10.
-
-progressBarLine() ->13.
-komunikatLine() -> 14.
-errorLine() -> 15.
-stanProduktowLine() -> 17.
-finishLine() -> 20.
+%---STALE -> aby uniknac HardCoded Variables
+progressBarLength() ->	10.
+numberOfProducts() ->   9.
+progressBarLine() ->	13.
+komunikatLine() -> 	    14.
+errorLine() -> 		    15.
+stanProduktowLine() ->  17.
+finishLine() ->         20.
 %---STALE END
 
 
+% Składniki poszczegolnych napojow
 % woda, kawa, mleko, herbata, kakao
 getIngredients(Num) -> 
     element(Num,{
@@ -27,18 +28,20 @@ getIngredients(Num) ->
     { 0  , 0 , 250, 0, 15}
     }). %progressBarLine
 
+% Poczatkowy stan automatu
 % woda, kawa, mleko, herbata, kakao
-getInitialMachineResources() -> {200, 1000, 2000, 50, 500}.
+getInitialMachineResources() -> {2000, 1000, 2000, 50, 500}.
 
+% funkcja odpowiadajaca za wyswietlanie paska postepu produkcji napoju
 printProgressBar(0) -> io:format(" ");
 printProgressBar(N) ->
-    %tu skaczemy miedzy liniami, bo na razie wtswietla się cały czasy prompt i jak nie ma skakania to jest np w linijce progressBarLine cos takiego: oooo12> a potem ooooooo12> (no prompt xD).
     print({gotoxy,progressBarLength()-N,progressBarLine()}),
     io:format("o"),
     print({gotoxy,0,finishLine()}),
     timer:sleep(500),
     printProgressBar(N-1).
 
+%wypisz menu
 printMenu() ->
     %print({clear}),
     print({gotoxy, 1, 1}),
@@ -58,6 +61,7 @@ Wybierz numer napoju: ").
 
 %-----------------------------------------
 
+%proces obslugi monitora
 monitor() ->
     receive
         {Id, init} ->
@@ -71,6 +75,7 @@ monitor() ->
             Kawa = io:get_chars("", 1),
             Id!{Kawa},
             monitor();
+        %{Komunikat, Tresc komunikatu, liniaw ktorej ma sie pojawic}
         {Komunikat, komunikat,LineNumber} ->
             io:format("\e[~p;~pHKomunikat: ~p~n~n", [LineNumber, 0, Komunikat]),
             print({gotoxy,0,finishLine()}),
@@ -82,6 +87,7 @@ monitor() ->
             io:format("M koniec ~n")
     end.
 
+%Glowna jednostka odpowiedzialna za obsluge
 jednostkaCentralna(MonitorId, MagazynId)->
     %io:format("jendostka centralna ~n"),
     receive
@@ -119,6 +125,7 @@ jednostkaCentralna(MonitorId, MagazynId)->
             jednostkaCentralna(MonitorId, MagazynId)
     end.
 
+%obsluga magazynu
 magazyn(Stan) ->
     Woda = element(1, Stan),
     Kawa = element(2, Stan),
@@ -136,8 +143,16 @@ magazyn(Stan) ->
             Id!{gotowe},
             magazyn({Woda, Kawa, Mleko, Herbata, Kakao});
         {Id, napoj, NumerNapoju} ->
-%%%123
                 {NumAsInt,_} =string:to_integer(NumerNapoju),
+
+                case NumAsInt of
+                    error -> Id!{"Wprowadzono niepoprawna wartosc", komunikat,errorLine()},timer:sleep(3000),
+                        Id!{gotowe},
+                        magazyn({Woda, Kawa, Mleko, Herbata, Kakao});
+                    _ -> null
+                end,
+               
+
                 Skladniki = getIngredients(NumAsInt),
                 UsedWoda = element(1,Skladniki),
                 UsedKawa = element(2,Skladniki),
@@ -185,8 +200,7 @@ magazyn(Stan) ->
                         Id!{gotowe},
                         magazyn({Woda, Kawa, Mleko, Herbata, Kakao})
                 end,
-                              
-                %timer:sleep(2000),%produkcja
+
                 Id!{printProgressBarCentralna},
                 Id!{"Kawa zrobiona, dziekujemy i zapraszamy ponownie!", komunikat,komunikatLine()},
                 Id!{{WodaLeft, KawaLeft, MlekoLeft, HerbataLeft, KakaoLeft},komunikat,stanProduktowLine()},
@@ -195,12 +209,14 @@ magazyn(Stan) ->
                 magazyn({WodaLeft, KawaLeft, MlekoLeft, HerbataLeft, KakaoLeft})
     end.
 
+%---Funkcja glowna---
 start() ->
     MonitorId = spawn(?MODULE, monitor, []),
     MagazynId = spawn(?MODULE, magazyn, [getInitialMachineResources()]),
     JCid = spawn(?MODULE, jednostkaCentralna, [MonitorId, MagazynId]),
     JCid!{init}.
 
+%---Pozostale funkcje---
 print({gotoxy,X,Y}) ->
    io:format("\e[~p;~pH",[Y,X]);
 print({printxy,X,Y,Msg}) ->
