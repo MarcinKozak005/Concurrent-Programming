@@ -1,4 +1,6 @@
 %  menu.erl
+
+%obsluga blenowd poprawiona
 -module(menu).
 -compile([export_all]).
 
@@ -8,8 +10,10 @@ numberOfProducts() ->   9.
 progressBarLine() ->	13.
 komunikatLine() -> 	    14.
 errorLine() -> 		    15.
-stanProduktowLine() ->  17.
-finishLine() ->         20.
+wodaLine()->            17.
+kawaLine()->			19.
+stanProduktowLine() ->  21.
+finishLine() ->         24.
 %---STALE END
 
 
@@ -33,13 +37,13 @@ getIngredients(Num) ->
 getInitialMachineResources() -> {2000, 1000, 2000, 50, 500}.
 
 % funkcja odpowiadajaca za wyswietlanie paska postepu produkcji napoju
-printProgressBar(0) -> io:format(" ");
-printProgressBar(N) ->
-    print({gotoxy,progressBarLength()-N,progressBarLine()}),
+printProgressBar(0,_,_) -> io:format(" ");
+printProgressBar(N,Czas,Line) ->
+    print({gotoxy,progressBarLength()-N,Line}),
     io:format("o"),
     print({gotoxy,0,finishLine()}),
-    timer:sleep(500),
-    printProgressBar(N-1).
+    timer:sleep(Czas),
+    printProgressBar(N-1,Czas,Line).
 
 %wypisz menu
 printMenu() ->
@@ -75,55 +79,97 @@ monitor() ->
             Kawa = io:get_chars("", 1),
             Id!{Kawa},
             monitor();
-        %{Komunikat, Tresc komunikatu, liniaw ktorej ma sie pojawic}
+        %{Tresc komunikatu, komunikat, linia w ktorej ma sie pojawic Tresc komunikatu}
         {Komunikat, komunikat,LineNumber} ->
-            io:format("\e[~p;~pHKomunikat: ~p~n~n", [LineNumber, 0, Komunikat]),
+            io:format("\e[~p;~pHKomunikat: ~p~n", [LineNumber, 0, Komunikat]),
             print({gotoxy,0,finishLine()}),
             monitor();
-        {printBrogressBarMonitor} ->
-            printProgressBar(10),
+        {printBrogressBarMonitor,Line} ->
+            printProgressBar(10,500,Line),
             monitor();
         {koniec} ->
             io:format("M koniec ~n")
     end.
 
 %Glowna jednostka odpowiedzialna za obsluge
-jednostkaCentralna(MonitorId, MagazynId)->
+jednostkaCentralna(MonitorId, MagazynId, BaristaId)->
     %io:format("jendostka centralna ~n"),
     receive
         {init} ->
             MonitorId!{self(), init},
-            jednostkaCentralna(MonitorId, MagazynId);
+            jednostkaCentralna(MonitorId, MagazynId, BaristaId);
         {monitorOk} ->
             MagazynId!{self(), init},
-            jednostkaCentralna(MonitorId, MagazynId);
+            jednostkaCentralna(MonitorId, MagazynId, BaristaId);
         {magazynOk} ->
             %io:format("JC start ~n"),
             MonitorId!{self(), start},
-            jednostkaCentralna(MonitorId, MagazynId);
+            jednostkaCentralna(MonitorId, MagazynId, BaristaId);
+
+        {magazynMaZasoby} ->
+			BaristaId!{self(),pracuj},
+            jednostkaCentralna(MonitorId, MagazynId, BaristaId);
+
         {gotowe} ->
+			MonitorId!{"Wykonano prace", komunikat,15},
+            timer:sleep(3000),
             MonitorId!{self(), start},
-            jednostkaCentralna(MonitorId, MagazynId);
-        {printProgressBarCentralna} ->
-            MonitorId!{printBrogressBarMonitor},
-            jednostkaCentralna(MonitorId,MagazynId);
+            jednostkaCentralna(MonitorId, MagazynId, BaristaId);
+        {printProgressBarCentralna,Line} ->
+            MonitorId!{printBrogressBarMonitor,Line},
+            jednostkaCentralna(MonitorId,MagazynId, BaristaId);
         {"k"} -> 
             exit(self(), "Bo tak");
         {"r"} ->
             MagazynId!{self(), init},
-            jednostkaCentralna(MonitorId, MagazynId);
+            jednostkaCentralna(MonitorId, MagazynId, BaristaId);
         {"s"} ->
             MagazynId!{self(), stan},
-            jednostkaCentralna(MonitorId, MagazynId);
+            jednostkaCentralna(MonitorId, MagazynId, BaristaId);
         {Napoj} ->
             MonitorId!{"Prosze czekac, napoj w trakcie produkcji", komunikat,komunikatLine()},
             print({gotoxy,0,finishLine()}),
             MagazynId!{self(), napoj, Napoj},
-            jednostkaCentralna(MonitorId, MagazynId);
+            jednostkaCentralna(MonitorId, MagazynId, BaristaId);
         {Blad, komunikat, LineNumber} ->
             MonitorId!{Blad, komunikat,LineNumber},
-            jednostkaCentralna(MonitorId, MagazynId)
+            jednostkaCentralna(MonitorId, MagazynId, BaristaId)
     end.
+
+barista(CzajnikId,MlynekId) ->
+	receive
+		{Id,pracuj} ->
+			CzajnikId!{self(),gotujWode},
+			MlynekId!{self(),mielKawe},
+			receive
+				{woda,zagotowana} ->
+					receive
+						{kawa,zmielona} -> Id!{gotowe},	barista(CzajnikId,MlynekId)
+					end;
+				{kawa,zmielona} ->
+					receive
+						{woda,zagotowana} -> Id!{gotowe}, barista(CzajnikId,MlynekId)
+					end %?154
+			end
+	end.
+
+czajnik() ->
+	receive
+		{Id,gotujWode} -> %obliczenia czasu ...
+			printProgressBar(10,500,wodaLine()),
+			timer:sleep(3000),
+			Id!{woda,zagotowana},
+			czajnik()
+	end.
+
+mlynek() ->
+	receive
+		{Id,mielKawe} ->
+			printProgressBar(10,100,kawaLine()),
+			timer:sleep(3000),
+			Id!{kawa,zmielona},
+			mlynek()			
+	end.
 
 %obsluga magazynu
 magazyn(Stan) ->
@@ -146,7 +192,8 @@ magazyn(Stan) ->
                 {NumAsInt,_} =string:to_integer(NumerNapoju),
 
                 case NumAsInt of
-                    error -> Id!{"Wprowadzono niepoprawna wartosc", komunikat,errorLine()},timer:sleep(3000),
+                    error -> Id!{"Wprowadzono niepoprawna wartosc", komunikat,errorLine()},
+                        timer:sleep(3000),
                         Id!{gotowe},
                         magazyn({Woda, Kawa, Mleko, Herbata, Kakao});
                     _ -> null
@@ -201,19 +248,22 @@ magazyn(Stan) ->
                         magazyn({Woda, Kawa, Mleko, Herbata, Kakao})
                 end,
 
-                Id!{printProgressBarCentralna},
-                Id!{"Kawa zrobiona, dziekujemy i zapraszamy ponownie!", komunikat,komunikatLine()},
+                %Id!{printProgressBarCentralna},
+                %Id!{"Kawa zrobiona, dziekujemy i zapraszamy ponownie!", komunikat,komunikatLine()},
                 Id!{{WodaLeft, KawaLeft, MlekoLeft, HerbataLeft, KakaoLeft},komunikat,stanProduktowLine()},
-                timer:sleep(10000),
-                Id!{gotowe},
+                timer:sleep(100),
+                Id!{magazynMaZasoby},
                 magazyn({WodaLeft, KawaLeft, MlekoLeft, HerbataLeft, KakaoLeft})
     end.
 
 %---Funkcja glowna---
 start() ->
+    MlynekId = spawn(?MODULE,mlynek,[]),
+    CzajnikId = spawn(?MODULE,czajnik,[]),
+	BaristaId = spawn(?MODULE,barista,[CzajnikId,MlynekId]),
     MonitorId = spawn(?MODULE, monitor, []),
     MagazynId = spawn(?MODULE, magazyn, [getInitialMachineResources()]),
-    JCid = spawn(?MODULE, jednostkaCentralna, [MonitorId, MagazynId]),
+    JCid = spawn(?MODULE, jednostkaCentralna, [MonitorId, MagazynId, BaristaId]),
     JCid!{init}.
 
 %---Pozostale funkcje---

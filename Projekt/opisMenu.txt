@@ -12,7 +12,11 @@ kakao            - 9.
 Wybierz numer napoju: 1   
 ooooooooo    				#StanLine
 Komunikat: "Kawa ..."			#KomunikatLine
-					#Error Line 
+					#Error Line
+Woda:
+#WodaLine
+Kawa
+#Kawaline
     
 Komunikat: {50,990,2000,50,500}		#StanProduktowLine
 
