@@ -5,11 +5,11 @@
 -compile([export_all]).
 
 %---STALE -> aby uniknac HardCoded Variables
-progressBarLength() ->    10.
-numberOfProducts() ->   9.
+progressBarLength() ->  10.
+numberOfProducts() ->    9.
 progressBarLine() ->    13.
-komunikatLine() ->         14.
-errorLine() ->             15.
+komunikatLine() ->      14.
+errorLine() ->          15.
 wodaLine()->            17.
 kawaLine()->            19.
 stanProduktowLine() ->  21.
@@ -37,13 +37,13 @@ getIngredients(Num) ->
 getInitialMachineResources() -> {2000, 1000, 2000, 50, 500}.
 
 % funkcja odpowiadajaca za wyswietlanie paska postepu produkcji napoju
-printProgressBar(0,_,_) -> io:format(" ");
-printProgressBar(N,Czas,Line) ->
+printProgressBar(0,_,_,_) -> io:format(" ");
+printProgressBar(N,Czas,Line,Znak) ->
     print({gotoxy,progressBarLength()-N,Line}),
-    io:format("o"),
+    io:format(Znak),
     print({gotoxy,0,finishLine()}),
     timer:sleep(Czas),
-    printProgressBar(N-1,Czas,Line).
+    printProgressBar(N-1,Czas,Line,Znak).
 
 %wypisz menu
 printMenu() ->
@@ -84,8 +84,12 @@ monitor() ->
             io:format("\e[~p;~pHKomunikat: ~p~n", [LineNumber, 0, Komunikat]),
             print({gotoxy,0,finishLine()}),
             monitor();
+		{partOfProgress,Line,Znak} ->
+			io:format("\e[~p;~pH~p", [Line, 0, Znak]),
+            print({gotoxy,0,finishLine()}),
+            monitor();
         {printBrogressBarMonitor,Line} ->
-            printProgressBar(10,500,Line),
+            printProgressBar(10,500,Line,"o"),
             monitor();
         {koniec} ->
             io:format("M koniec ~n")
@@ -106,8 +110,8 @@ jednostkaCentralna(MonitorId, MagazynId, BaristaId)->
             MonitorId!{self(), start},
             jednostkaCentralna(MonitorId, MagazynId, BaristaId);
 
-        {magazynMaZasoby} ->
-            BaristaId!{self(),pracuj},
+        {magazynMaZasoby,NumerNapoju} ->
+            BaristaId!{self(),pracuj,NumerNapoju},
             jednostkaCentralna(MonitorId, MagazynId, BaristaId);
 
         {gotowe} ->
@@ -115,6 +119,9 @@ jednostkaCentralna(MonitorId, MagazynId, BaristaId)->
             timer:sleep(3000),
             MonitorId!{self(), start},
             jednostkaCentralna(MonitorId, MagazynId, BaristaId);
+		{partOfProgress,Line,Znak} ->
+			MonitorId!{partOfProgress,Line},
+            jednostkaCentralna(MonitorId,MagazynId, BaristaId);
         {printProgressBarCentralna,Line} ->
             MonitorId!{printBrogressBarMonitor,Line},
             jednostkaCentralna(MonitorId,MagazynId, BaristaId);
@@ -127,9 +134,20 @@ jednostkaCentralna(MonitorId, MagazynId, BaristaId)->
             MagazynId!{self(), stan},
             jednostkaCentralna(MonitorId, MagazynId, BaristaId);
         {Napoj} ->
-            MonitorId!{"Prosze czekac, napoj w trakcie produkcji", komunikat,komunikatLine()},
+            MonitorId!{"Prosze czekac, przetwarzanie polecenia", komunikat,komunikatLine()},
+
+            {NumAsInt,_} = string:to_integer(Napoj),
+
+            case NumAsInt of
+                error -> MonitorId!{"Wprowadzono niepoprawna wartosc", komunikat,errorLine()},
+                    timer:sleep(3000),
+					MonitorId!{self(), start},
+            		jednostkaCentralna(MonitorId, MagazynId, BaristaId);
+                _ -> null
+            end,
+
             print({gotoxy,0,finishLine()}),
-            MagazynId!{self(), napoj, Napoj},
+            MagazynId!{self(), napoj, NumAsInt},
             jednostkaCentralna(MonitorId, MagazynId, BaristaId);
         {Blad, komunikat, LineNumber} ->
             MonitorId!{Blad, komunikat,LineNumber},
@@ -138,35 +156,45 @@ jednostkaCentralna(MonitorId, MagazynId, BaristaId)->
 
 barista(CzajnikId,MlynekId) ->
     receive
-        {Id,pracuj} ->
-            CzajnikId!{self(),gotujWode},
-            MlynekId!{self(),mielKawe},
+        {Id,pracuj,NumerNapoju} ->
+			Skladniki = getIngredients(NumerNapoju),
+			UsedWoda = element(1,Skladniki),
+    		UsedKawa = element(2,Skladniki),
+    		UsedMleko = element(3,Skladniki),
+
+            CzajnikId!{self(),gotujWode,UsedWoda},
+            MlynekId!{self(),mielKawe,UsedKawa},
+            
+
+       	{woda,zagotowana} ->
+        	receive
+                {kawa,zmielona} -> Id!{gotowe},    barista(CzajnikId,MlynekId)
+            end;
+        {kawa,zmielona} ->
             receive
-                {woda,zagotowana} ->
-                    receive
-                        {kawa,zmielona} -> Id!{gotowe},    barista(CzajnikId,MlynekId)
-                    end;
-                {kawa,zmielona} ->
-                    receive
-                        {woda,zagotowana} -> Id!{gotowe}, barista(CzajnikId,MlynekId)
-                    end %?154
+                {woda,zagotowana} -> Id!{gotowe}, barista(CzajnikId,MlynekId)
             end
+		{Linia,Znak} ->
+			
+            
     end.
 
 czajnik() ->
     receive
-        {Id,gotujWode} -> %obliczenia czasu ...
-            printProgressBar(10,500,wodaLine()),
-            timer:sleep(3000),
+        {Id,gotujWode,Woda} ->
+			Parts = round(Woda/50),
+            printProgressBar(10,Parts*100,wodaLine(),"w"),
+            %timer:sleep(3000),
             Id!{woda,zagotowana},
             czajnik()
     end.
 
 mlynek() ->
     receive
-        {Id,mielKawe} ->
-            printProgressBar(10,100,kawaLine()),
-            timer:sleep(3000),
+        {Id,mielKawe,Kawa} ->
+			Parts = round(Kawa/5),
+            printProgressBar(10,Parts*100,kawaLine(),"k"),
+            %timer:sleep(3000),
             Id!{kawa,zmielona},
             mlynek()            
     end.
@@ -189,18 +217,10 @@ magazyn(Stan) ->
             Id!{gotowe},
             magazyn({Woda, Kawa, Mleko, Herbata, Kakao});
         {Id, napoj, NumerNapoju} ->
-                {NumAsInt,_} =string:to_integer(NumerNapoju),
 
-                case NumAsInt of
-                    error -> Id!{"Wprowadzono niepoprawna wartosc", komunikat,errorLine()},
-                        timer:sleep(3000),
-                        Id!{gotowe},
-                        magazyn({Woda, Kawa, Mleko, Herbata, Kakao});
-                    _ -> null
-                end,
                
 
-                Skladniki = getIngredients(NumAsInt),
+                Skladniki = getIngredients(NumerNapoju),
                 UsedWoda = element(1,Skladniki),
                 UsedKawa = element(2,Skladniki),
                 UsedMleko = element(3,Skladniki),
@@ -252,7 +272,7 @@ magazyn(Stan) ->
                 %Id!{"Kawa zrobiona, dziekujemy i zapraszamy ponownie!", komunikat,komunikatLine()},
                 Id!{{WodaLeft, KawaLeft, MlekoLeft, HerbataLeft, KakaoLeft},komunikat,stanProduktowLine()},
                 timer:sleep(100),
-                Id!{magazynMaZasoby},
+                Id!{magazynMaZasoby,NumerNapoju},
                 magazyn({WodaLeft, KawaLeft, MlekoLeft, HerbataLeft, KakaoLeft})
     end.
 
