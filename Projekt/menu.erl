@@ -6,6 +6,7 @@
 %---STALE -> aby uniknac HardCoded Variables
 progressBarLength() ->  10.
 numberOfProducts() ->    9.
+% Stale od numerow lini
 progressBarLine() ->    15.
 komunikatLine() ->      17.
 errorLine() ->          18.
@@ -17,7 +18,9 @@ finishLine() ->         29.
 %---STALE END
 
 
-% Składniki poszczegolnych napojow
+%Rozne Funkcje-----------------------------------------
+
+% Funkcja zwracajaca składniki poszczegolnych napojow
 % woda, kawa, mleko, herbata, kakao
 getIngredients(Num) -> 
     element(Num,{
@@ -30,13 +33,11 @@ getIngredients(Num) ->
     { 50 , 40, 0  , 0, 0 },
     { 250, 0 , 0  , 1, 0 },
     { 0  , 0 , 250, 0, 15}
-    }). %progressBarLine
+    }).
 
 % Poczatkowy stan automatu
 % woda, kawa, mleko, herbata, kakao
 getInitialMachineResources() -> {2000, 1000, 2000, 50, 500}.
-
-
 
 %wypisz menu
 printMenu() ->
@@ -58,10 +59,21 @@ printMenu() ->
 
 Wybierz numer napoju: ").
 
+%zwraca pierwszy element listy jako jednoelementowa liste
+head([H|_])->[H].
 
-%-----------------------------------------
+% funkcja dzieki ktorej proces moze wysylac dane cyklicznie.Okreslamy tez ile sygnalow ma wyslac do ktorego procesu. Potrzebne przy paskach postepu etapow przygotowania napoju
+wyslijCyklicznieN(_,_,0,{_,_,_}) -> io:format(" ");
+wyslijCyklicznieN(Id,Czas,Ile,{A,B,C}) ->
+	Id!{A,B,C},
+	timer:sleep(Czas),
+	wyslijCyklicznieN(Id,Czas,Ile-1,{A,B,C++head(C)}).
 
-%proces obslugi monitora
+%Koniec roznych funkcji-----------------------------------------
+
+%PROCESY ---------------------------------
+
+%proces obslugi monitora WE/WY
 monitor() ->
     receive
         {Id, init} ->
@@ -72,14 +84,16 @@ monitor() ->
         {Id, start} -> 
             print({clear}),
             printMenu(),
-            Kawa = io:get_chars("", 1),
-            Id!{Kawa},
+            Napoj = io:get_chars("", 1),
+            Id!{Napoj},
             monitor();
-        %{Tresc komunikatu, komunikat, linia w ktorej ma sie pojawic Tresc komunikatu}
+        % Komunikat: [tresc komunikatu]
         {Komunikat, komunikat,LineNumber} ->
             io:format("\e[~p;~pHKomunikat: ~p~n", [LineNumber, 0, Komunikat]),
             print({gotoxy,0,finishLine()}),
             monitor();
+		% Trzy ponizsze funkcje sluza do wyswietlania informacji typu: [etykieta] [Tekst]
+		% string od zmiennej rozni sie sposobem wyswietlania (~s,~p). 
 		{etykieta,Linia,Tekst} ->
 			io:format("\e[~p;~pH~s", [Linia, 0, Tekst]),
             print({gotoxy,0,finishLine()}),
@@ -98,7 +112,6 @@ monitor() ->
 
 %Glowna jednostka odpowiedzialna za obsluge
 jednostkaCentralna(MonitorId, MagazynId, CzajnikId, MlynekId, BaristaId, PodgrzewaczId)->
-    %io:format("jendostka centralna ~n"),
     receive
         {init} ->
             MonitorId!{self(), init},
@@ -107,10 +120,9 @@ jednostkaCentralna(MonitorId, MagazynId, CzajnikId, MlynekId, BaristaId, Podgrze
             MagazynId!{self(), init},
             jednostkaCentralna(MonitorId, MagazynId, CzajnikId, MlynekId, BaristaId, PodgrzewaczId);
         {magazynOk} ->
-            %io:format("JC start ~n"),
             MonitorId!{self(), start},
             jednostkaCentralna(MonitorId, MagazynId, CzajnikId, MlynekId, BaristaId, PodgrzewaczId);
-
+		%Magazyn ma zasoby na dany napoj
         {magazynMaZasoby,Skladniki} ->
 			UsedWoda = element(1,Skladniki),
 			UsedKawa = element(2,Skladniki),
@@ -120,21 +132,23 @@ jednostkaCentralna(MonitorId, MagazynId, CzajnikId, MlynekId, BaristaId, Podgrze
             MlynekId!{self(),mielKawe,UsedKawa},
 			PodgrzewaczId!{self(),grzejMleko,UsedMleko},
             jednostkaCentralna(MonitorId, MagazynId, CzajnikId, MlynekId, BaristaId, PodgrzewaczId);
+		%Przekazanie do monitora
 		{etykieta, Linia, Tekst} ->
 			MonitorId!{etykieta,Linia,Tekst},
 			jednostkaCentralna(MonitorId, MagazynId, CzajnikId, MlynekId, BaristaId, PodgrzewaczId);
+		{string,Line,Znak} ->
+			MonitorId!{string,Line,Znak},
+            jednostkaCentralna(MonitorId,MagazynId, CzajnikId, MlynekId, BaristaId, PodgrzewaczId);
 		{zmienna,Linia,Tekst} ->
 			MonitorId!{zmienna,Linia,Tekst},
 			jednostkaCentralna(MonitorId, MagazynId, CzajnikId, MlynekId, BaristaId, PodgrzewaczId);
+		%koniec procesu
         {gotowe} ->
             MonitorId!{"Napoj gotowy do odbioru! Dziekujemy za skorzystanie z naszych uslug", komunikat,finishLine()-1},
             timer:sleep(7000),
             MonitorId!{self(), start},
             jednostkaCentralna(MonitorId, MagazynId, CzajnikId, MlynekId, BaristaId, PodgrzewaczId);
-
-		{string,Line,Znak} ->
-			MonitorId!{string,Line,Znak},
-            jednostkaCentralna(MonitorId,MagazynId, CzajnikId, MlynekId, BaristaId, PodgrzewaczId);
+		%komunikaty od jednostek podrzednych
 		{woda,zagotowana} ->
 			BaristaId!{self(),woda,zagotowana},
 			jednostkaCentralna(MonitorId,MagazynId, CzajnikId, MlynekId, BaristaId, PodgrzewaczId);
@@ -144,12 +158,15 @@ jednostkaCentralna(MonitorId, MagazynId, CzajnikId, MlynekId, BaristaId, Podgrze
 		{mleko,gorace} ->
 			BaristaId!{self(),mleko,gorace},
 			jednostkaCentralna(MonitorId,MagazynId, CzajnikId, MlynekId, BaristaId, PodgrzewaczId);
+		% obsluga wejscia uzytkownika
         {"k"} -> 
-            exit(self(), "Bo tak");
+            exit(self(), "Koniec");
+		%reset magazynu
         {"r"} ->
             MagazynId!{self(), init},
             jednostkaCentralna(MonitorId, MagazynId, CzajnikId, MlynekId, BaristaId, PodgrzewaczId);
-        {"s"} ->
+	    %wyswietli obecny stan na magazynie
+		{"s"} ->
             MagazynId!{self(), stan},
             jednostkaCentralna(MonitorId, MagazynId, CzajnikId, MlynekId, BaristaId, PodgrzewaczId);
         {Napoj} ->
@@ -157,8 +174,10 @@ jednostkaCentralna(MonitorId, MagazynId, CzajnikId, MlynekId, BaristaId, Podgrze
 			MonitorId!{etykieta,wodaLine(),"Woda:"},
 			MonitorId!{etykieta,kawaLine(),"Kawa:"},
 			MonitorId!{etykieta,mlekoLine(),"Mleko:"},
+			%konwersja inputa do inta
 			{NumAsInt,_} = string:to_integer(Napoj),
 
+			% obsluga bledu (np: input=a)
             case NumAsInt of
                 error -> MonitorId!{"Wprowadzono niepoprawna wartosc", komunikat,errorLine()},
                     timer:sleep(3000),
@@ -168,13 +187,17 @@ jednostkaCentralna(MonitorId, MagazynId, CzajnikId, MlynekId, BaristaId, Podgrze
             end,
 
             print({gotoxy,0,finishLine()}),
+			%komunikacja z magazynem
             MagazynId!{self(), napoj, NumAsInt},
             jednostkaCentralna(MonitorId, MagazynId, CzajnikId, MlynekId, BaristaId, PodgrzewaczId);
-        {Blad, komunikat, LineNumber} ->
-            MonitorId!{Blad, komunikat,LineNumber},
+        {Tekst, komunikat, LineNumber} ->
+            MonitorId!{Tekst, komunikat,LineNumber},
             jednostkaCentralna(MonitorId, MagazynId, CzajnikId, MlynekId, BaristaId, PodgrzewaczId)
     end.
 
+% Jego sens/cel istnienia jest troche skomplikowany dlatego zostanie wyjasniony w dokumentacji
+% Po krotce: wie ktore z etapow robienia napoju sa gotowe (zagrzane mleko,woda, zmielona kawa)
+% Informacje te sa w nim trzymane, aby nie blokowac JednostkiCentralnej
 barista() ->
     receive
        	{Id,woda,zagotowana} ->
@@ -210,30 +233,28 @@ barista() ->
 						{Id,kawa,zmielona} -> Id!{gotowe}, barista()
 					end
             end
-
     end.
 
-
-head([H|_])->[H].
-
-wyslijCyklicznieN(_,_,0,{_,_,_}) -> io:format(" ");
-wyslijCyklicznieN(Id,Czas,Ile,{A,B,C}) ->
-	Id!{A,B,C},
-	timer:sleep(Czas),
-	wyslijCyklicznieN(Id,Czas,Ile-1,{A,B,C++head(C)}).
-
+%proces grzania wody
 czajnik() ->
     receive
         {Id,gotujWode,Woda} ->
+			% ok ile 50ml czesci jest potrzebnych do danego napoju
 			Parts = round(Woda/50),
 			case Parts of
+				%jesli nie potrzeba w ogole to stosowna informacja sie pojawi
 				0 -> Id!{string,wodaLine(),"gotowe"};
+				% co kwant czasu raportujemy JednostceCentralnej wykonanie czesci zadania
+				% uwagi co do sensownosci takiego rozwiazania w dokumentacji
 				_ -> wyslijCyklicznieN(Id,Parts*100,progressBarLength(),{string,wodaLine(),"o"})
 			end,
+			%sygnalizacja konca procesu grzania wody
             Id!{woda,zagotowana},
             czajnik()
     end.
 
+%proces mielenia kawy
+%opisy podobne jak przy procesie czajnika
 mlynek() ->
     receive
         {Id,mielKawe,Kawa} ->
@@ -246,6 +267,8 @@ mlynek() ->
             mlynek()            
     end.
 
+%proces podgrzewania mleka
+%opisy podobne jak przy procesie czajnika
 podgrzewaczMleka() ->
 	receive
         {Id,grzejMleko,Mleko} ->
@@ -260,6 +283,7 @@ podgrzewaczMleka() ->
 
 %obsluga magazynu
 magazyn(Stan) ->
+	%pobranie aktualnych zasobow produktow
     Woda = element(1, Stan),
     Kawa = element(2, Stan),
     Mleko = element(3, Stan),
@@ -276,7 +300,7 @@ magazyn(Stan) ->
             Id!{gotowe},
             magazyn({Woda, Kawa, Mleko, Herbata, Kakao});
         {Id, napoj, NumerNapoju} ->
-
+				%wyciaganie skladnikow danego napoju
                 Skladniki = getIngredients(NumerNapoju),
                 UsedWoda = element(1,Skladniki),
                 UsedKawa = element(2,Skladniki),
@@ -284,12 +308,14 @@ magazyn(Stan) ->
                 UsedHerbata = element(4,Skladniki),
                 UsedKakao = element(5,Skladniki),
                 
+				%obliczanie ile zasobow zostanie po produkcji
                 WodaLeft = Woda-UsedWoda,
                 KawaLeft = Kawa-UsedKawa,
                 MlekoLeft = Mleko-UsedMleko,
                 HerbataLeft = Herbata-UsedHerbata,
                 KakaoLeft = Kakao-UsedKakao,
 
+				%jezeli jakiegos zasobu jest za malo do produkcji bedzie stosowny komunikat
                 case WodaLeft<0 of
                     false -> null;
                     true -> Id!{"brak wody", komunikat,errorLine()},timer:sleep(3000),
@@ -325,10 +351,14 @@ magazyn(Stan) ->
                         magazyn({Woda, Kawa, Mleko, Herbata, Kakao})
                 end,
 
+				%Wyswietlamy stan produktow
+				% bardziej zeby pokazac ze magayn dziala- klient nie ma potrzeby wiedziec ile surowcow zostalo w magazynie
+				% w klienckiej wersji mozna 2ponizsze linie zakomentowac
                 Id!{etykieta,stanProduktowLine(),"Stan: "},
 				Id!{zmienna,stanProduktowLine(),{WodaLeft, KawaLeft, MlekoLeft, HerbataLeft, KakaoLeft}},
-                timer:sleep(100),
+				%raportujemy JednostceCentralnej ze mamy potrzebne zasoby
                 Id!{magazynMaZasoby,{UsedWoda,UsedKawa,UsedMleko,UsedHerbata,UsedKakao}},
+				%aktualizacja stanu magazynu
                 magazyn({WodaLeft, KawaLeft, MlekoLeft, HerbataLeft, KakaoLeft})
     end.
 
