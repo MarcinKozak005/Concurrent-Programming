@@ -5,13 +5,13 @@
 -compile([export_all]).
 
 %---STALE -> aby uniknac HardCoded Variables
-progressBarLength() ->	10.
+progressBarLength() ->    10.
 numberOfProducts() ->   9.
-progressBarLine() ->	13.
-komunikatLine() -> 	    14.
-errorLine() -> 		    15.
+progressBarLine() ->    13.
+komunikatLine() ->         14.
+errorLine() ->             15.
 wodaLine()->            17.
-kawaLine()->			19.
+kawaLine()->            19.
 stanProduktowLine() ->  21.
 finishLine() ->         24.
 %---STALE END
@@ -107,11 +107,11 @@ jednostkaCentralna(MonitorId, MagazynId, BaristaId)->
             jednostkaCentralna(MonitorId, MagazynId, BaristaId);
 
         {magazynMaZasoby} ->
-			BaristaId!{self(),pracuj},
+            BaristaId!{self(),pracuj},
             jednostkaCentralna(MonitorId, MagazynId, BaristaId);
 
         {gotowe} ->
-			MonitorId!{"Wykonano prace", komunikat,15},
+            MonitorId!{"Wykonano prace", komunikat,15},
             timer:sleep(3000),
             MonitorId!{self(), start},
             jednostkaCentralna(MonitorId, MagazynId, BaristaId);
@@ -137,39 +137,39 @@ jednostkaCentralna(MonitorId, MagazynId, BaristaId)->
     end.
 
 barista(CzajnikId,MlynekId) ->
-	receive
-		{Id,pracuj} ->
-			CzajnikId!{self(),gotujWode},
-			MlynekId!{self(),mielKawe},
-			receive
-				{woda,zagotowana} ->
-					receive
-						{kawa,zmielona} -> Id!{gotowe},	barista(CzajnikId,MlynekId)
-					end;
-				{kawa,zmielona} ->
-					receive
-						{woda,zagotowana} -> Id!{gotowe}, barista(CzajnikId,MlynekId)
-					end %?154
-			end
-	end.
+    receive
+        {Id,pracuj} ->
+            CzajnikId!{self(),gotujWode},
+            MlynekId!{self(),mielKawe},
+            receive
+                {woda,zagotowana} ->
+                    receive
+                        {kawa,zmielona} -> Id!{gotowe},    barista(CzajnikId,MlynekId)
+                    end;
+                {kawa,zmielona} ->
+                    receive
+                        {woda,zagotowana} -> Id!{gotowe}, barista(CzajnikId,MlynekId)
+                    end %?154
+            end
+    end.
 
 czajnik() ->
-	receive
-		{Id,gotujWode} -> %obliczenia czasu ...
-			printProgressBar(10,500,wodaLine()),
-			timer:sleep(3000),
-			Id!{woda,zagotowana},
-			czajnik()
-	end.
+    receive
+        {Id,gotujWode} -> %obliczenia czasu ...
+            printProgressBar(10,500,wodaLine()),
+            timer:sleep(3000),
+            Id!{woda,zagotowana},
+            czajnik()
+    end.
 
 mlynek() ->
-	receive
-		{Id,mielKawe} ->
-			printProgressBar(10,100,kawaLine()),
-			timer:sleep(3000),
-			Id!{kawa,zmielona},
-			mlynek()			
-	end.
+    receive
+        {Id,mielKawe} ->
+            printProgressBar(10,100,kawaLine()),
+            timer:sleep(3000),
+            Id!{kawa,zmielona},
+            mlynek()            
+    end.
 
 %obsluga magazynu
 magazyn(Stan) ->
@@ -260,7 +260,7 @@ magazyn(Stan) ->
 start() ->
     MlynekId = spawn(?MODULE,mlynek,[]),
     CzajnikId = spawn(?MODULE,czajnik,[]),
-	BaristaId = spawn(?MODULE,barista,[CzajnikId,MlynekId]),
+    BaristaId = spawn(?MODULE,barista,[CzajnikId,MlynekId]),
     MonitorId = spawn(?MODULE, monitor, []),
     MagazynId = spawn(?MODULE, magazyn, [getInitialMachineResources()]),
     JCid = spawn(?MODULE, jednostkaCentralna, [MonitorId, MagazynId, BaristaId]),
