@@ -27,12 +27,10 @@ tsum(L) -> tsum(L, 0). %tsum/1
 
 tsum([H|T], S) -> tsum(T, S+H); %tsum/2 
 tsum([],S) -> S.
-% klauzule funkcji rozdzielana sÄ? Å?rednikiem
-% po ostatniej jst kropka
 
 %----------------------------------------------------
 obwod_kola(Promien) -> 
-        Dwa_pi = 2 * pi(),  % wyraÅŸenie pomocnicze
+        Dwa_pi = 2 * pi(),  % wyraÄ¹Åºenie pomocnicze
         Dwa_pi * Promien.   % ostatni element przed '.' lib ';' 
                             % to wynik funkcji
 
