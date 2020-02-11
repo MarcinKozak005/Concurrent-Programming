@@ -1,26 +1,15 @@
--- lab1.adb
--- komentarz do koA?ca linii
-
--- wykorzystany pakiet 
 with Ada.Text_IO;
 use Ada.Text_IO;
 
--- procedura gA?A3wna - dowolna nazwa
+
 procedure lab1 is
 
--- czÄ?A?Ä? deklaracyjna  
-  
-  -- funkcja - forma peA?na
   function Max2(A1, A2 : in Float ) return Float is
   begin
     if A1 > A2 then return A1;
     else return A2; 
     end if;
   end Max2;    
-
-  -- funkcja "wyraAYeniowa"  
-  -- forma uproszczona funkcji
-  -- jej treA?ciÄ? jest tylko wyraAYenie w nawiasie   
   
   function Add(A1, A2 : Float) return Float is
     (A1 + A2);
@@ -32,13 +21,11 @@ procedure lab1 is
   function Fibo(N : Natural) return Natural is   
     (if N = 0 then 1 elsif N in 1|2 then  1 else Fibo(N-1) + Fibo(N-2) );   
   
-    -- procedura 
-    -- zparametryzowany ciÄ?g instrukcji  
   procedure Print_Fibo(N: Integer) is
   begin
     if N <1 or N>46 then raise Constraint_Error;
     end if;
-    Put_Line("CiÄ?g Fibonacciego dla N= " & N'Img);
+    Put_Line("CiÃ„?g Fibonacciego dla N= " & N'Img);
     for I in 1..N loop
       Put( Fibo(I)'Img & " " );
     end loop;   
@@ -89,7 +76,6 @@ procedure lab1 is
   
   
   -----------------------------------------------------------------------------------------
--- poniAYej treA?Ä? procesury gA?A3wnej   
 begin
   Put_Line("Suma = " & Add(3.0, 4.0)'Img );
   Put_Line("Srednia = "& Srednia(3.0, 4.0)'Img);
