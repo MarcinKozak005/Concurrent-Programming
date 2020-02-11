@@ -22,7 +22,7 @@ mergeSort(List) ->
 	merge(mergeSort(Left),mergeSort(Right)).
 
 %---------------------------------------
-
+% IT DOES NOT WORK PROPERLY!
 mergeSortW(Parent,[]) -> Parent!{self(),[]};
 mergeSortW(Parent,[A]) -> Parent!{self(),[A]};
 mergeSortW(Parent,List) ->
