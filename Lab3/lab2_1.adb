@@ -38,7 +38,7 @@ begin
   List := E;
 end Insert;
  
--- wstawianie jako funkcja - wersja krótka
+-- wstawianie jako funkcja - wersja krÃ³tka
 function Insert(List : access Element; D : in Integer) return access Element is 
   ( new Element'(D,List) ); 
  
@@ -141,7 +141,7 @@ begin
 
 end Delete;
 
--- procedure glowna***
+-- procedura glowna***
 Lista : Elem_Ptr := Null;
 Lista2: Elem_Ptr := Null;
 begin
