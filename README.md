@@ -1,4 +1,4 @@
-# Content:
+# Content
 
 1. **Lab1** - Introduction to Ada and Erlang
 2. **Lab2** - Random and Sorting in Ada
@@ -9,4 +9,4 @@
 2. **Lab7** - Concurrency in Ada - Semaphores and Protected Type
 2. **Lab8** - Concurrency in Erlang
 2. **Lab9** - Streams Ada (**not finished**)
-2. **Projekt** - Project done with @SzymonBorowy. Coffee vending machine in Erlang.
+2. **Projekt** - Project done with [@SzymonBorowy](https://github.com/SzymonBorowy). Coffee vending machine in Erlang.
